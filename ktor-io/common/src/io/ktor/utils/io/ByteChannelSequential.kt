@@ -110,7 +110,7 @@ public abstract class ByteChannelSequentialBase(
      */
     private fun flushWrittenBytes() {
         synchronized(flushMutex) {
-            val buffer = writable.stealAll()!!
+            val buffer = writable.stealAll() ?: return@synchronized
             flushBuffer.writeChunkBuffer(buffer)
         }
     }
@@ -320,7 +320,11 @@ public abstract class ByteChannelSequentialBase(
     }
 
     private suspend fun readShortSlow(): Short {
-        readNSlow(2) { return readable.readShort().also { afterRead(2) } }
+        readNSlow(2) {
+            val result = readable.readShort()
+            afterRead(2)
+            return result
+        }
     }
 
     protected fun afterRead(count: Int) {
@@ -450,7 +454,7 @@ public abstract class ByteChannelSequentialBase(
         return builder.build()
     }
 
-    protected fun readAvailableClosed(): Int {
+    private fun readAvailableClosed(): Int {
         closedCause?.let { throw it }
 
         if (availableForRead > 0) {
@@ -460,9 +464,7 @@ public abstract class ByteChannelSequentialBase(
         return -1
     }
 
-    override suspend fun readAvailable(dst: ChunkBuffer): Int = readAvailable(dst as Buffer)
-
-    internal suspend fun readAvailable(dst: Buffer): Int {
+    override suspend fun readAvailable(dst: ChunkBuffer): Int {
         closedCause?.let { throw it }
         if (closed && availableForRead == 0) return -1
 
@@ -700,19 +702,13 @@ public abstract class ByteChannelSequentialBase(
 
     override suspend fun <A : Appendable> readUTF8LineTo(out: A, limit: Int): Boolean {
         if (isClosedForRead) {
-            val cause = closedCause
-            if (cause != null) {
-                throw cause
-            }
-
+            closedCause?.let { throw it }
             return false
         }
 
-        return decodeUTF8LineLoopSuspend(out, limit) { size ->
-            afterRead(size)
-            if (await(size)) readable
-            else null
-        }
+        return decodeUTF8LineLoopSuspend(out, limit, { size ->
+            if (await(size)) readable else null
+        }) { afterRead(it) }
     }
 
     override suspend fun readUTF8Line(limit: Int): String? {
@@ -750,14 +746,13 @@ public abstract class ByteChannelSequentialBase(
 
     internal fun transferTo(dst: ByteChannelSequentialBase, limit: Long): Long {
         val size = readable.remaining
-        return if (size <= limit) {
-            dst.writable.writePacket(readable)
-            dst.afterWrite(size.toInt())
-            afterRead(size.toInt())
-            size
-        } else {
-            0
-        }
+        if (size > limit) return 0
+
+        dst.writable.writePacket(readable)
+        dst.afterWrite(size.toInt())
+        dst.flush()
+        afterRead(size.toInt())
+        return size
     }
 
     private suspend inline fun readNSlow(n: Int, block: () -> Nothing): Nothing {
