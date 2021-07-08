@@ -54,8 +54,6 @@ public fun CoroutineScope.startServerConnectionPipeline(
         while (true) { // parse requests loop
             val request = try {
                 parseRequest(connection.input) ?: break
-            } catch (io: IOException) {
-                throw io
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (parseFailed: Throwable) { // try to write 400 Bad Request

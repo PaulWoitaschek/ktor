@@ -36,7 +36,7 @@ internal fun testHttpServer(
         try {
             while (true) {
                 val client = server.accept() ?: break
-                live.put(client, Unit)
+                live[client] = Unit
                 client(client, ioCoroutineContext, callDispatcher, handler)
             }
         } catch (expected: ClosedChannelException) {

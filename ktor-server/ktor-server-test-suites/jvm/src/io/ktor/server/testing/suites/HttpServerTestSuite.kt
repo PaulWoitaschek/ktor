@@ -634,17 +634,23 @@ abstract class HttpServerTestSuite<TEngine : ApplicationEngine, TConfiguration :
                             engineContext: CoroutineContext,
                             userContext: CoroutineContext
                         ): Job {
+                            println("perform upgrade")
                             return launch(engineContext) {
                                 try {
                                     val bb = ByteBuffer.allocate(8)
+                                    println("started")
                                     input.readFully(bb)
+                                    println("readfully done")
                                     bb.flip()
                                     output.writeFully(bb)
+                                    println("writefully done")
                                     output.close()
                                     input.readRemaining().use {
                                         assertEquals(0, it.remaining)
                                     }
+                                    println("readremaining done")
                                     completed.complete(Unit)
+                                    println("Complete")
                                 } catch (t: Throwable) {
                                     completed.completeExceptionally(t)
                                     throw t
