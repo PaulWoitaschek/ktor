@@ -68,7 +68,9 @@ internal fun Application.tlsTests() {
 
     routing {
         get("/") {
+            println("Get tls")
             call.respondText("Hello, TLS!")
+            println("Respond tls")
         }
     }
 }

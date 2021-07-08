@@ -11,13 +11,19 @@ import io.ktor.http.content.*
 import io.ktor.util.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.debug.junit4.*
 import org.apache.http.*
 import org.apache.http.nio.*
+import org.junit.*
 import java.nio.*
 import kotlin.coroutines.*
 import kotlin.test.*
+import kotlin.test.Test
 
 class RequestProducerTest {
+
+    @get:Rule
+    val timeout = CoroutinesTimeout.seconds(15)
 
     @Test
     fun testHeadersMerge() = runBlocking {
