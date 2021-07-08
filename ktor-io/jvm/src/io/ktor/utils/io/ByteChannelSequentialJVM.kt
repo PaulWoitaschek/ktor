@@ -178,12 +178,18 @@ public class ByteChannelSequentialJVM(
                 channel.prepareFlushedBytes()
             }
 
-            val head = channel.readable.head
-            if (head.readRemaining < skip + atLeast) return null
+            var current = channel.readable.head
+            var skipRemaining = skip
+            while (skipRemaining >= current.readRemaining) {
+                skipRemaining -= current.readRemaining
+                current = current.next ?: return null
+            }
 
-            val buffer = head.memory.buffer.slice()
-            buffer.position(head.readPosition + skip)
-            buffer.limit(head.writePosition)
+            if (current.readRemaining - skipRemaining < atLeast) return null
+
+            val buffer = current.memory.buffer.slice()
+            buffer.position(current.readPosition + skipRemaining)
+            buffer.limit(current.writePosition)
             return buffer
         }
     }
