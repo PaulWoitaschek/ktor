@@ -113,8 +113,7 @@ internal fun byteCountUtf8(firstByte: Int): Int {
  * @return number of bytes required to decode incomplete utf8 character or 0 if all bytes were processed
  * or -1 if consumer rejected loop
  */
-@DangerousInternalIoApi
-public inline fun Buffer.decodeUTF8(consumer: (Char) -> Boolean): Int {
+internal inline fun Buffer.decodeUTF8(consumer: (Char) -> Boolean): Int {
     var byteCount = 0
     var value = 0
     var lastByteCount = 0

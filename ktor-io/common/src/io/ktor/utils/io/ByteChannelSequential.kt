@@ -700,11 +700,7 @@ public abstract class ByteChannelSequentialBase(
 
     override suspend fun <A : Appendable> readUTF8LineTo(out: A, limit: Int): Boolean {
         if (isClosedForRead) {
-            val cause = closedCause
-            if (cause != null) {
-                throw cause
-            }
-
+            closedCause?.let { throw it }
             return false
         }
 
@@ -751,14 +747,12 @@ public abstract class ByteChannelSequentialBase(
 
     internal fun transferTo(dst: ByteChannelSequentialBase, limit: Long): Long {
         val size = readable.remaining
-        return if (size <= limit) {
-            dst.writable.writePacket(readable)
-            dst.afterWrite(size.toInt())
-            afterRead(size.toInt())
-            size
-        } else {
-            0
-        }
+        if (size > limit) return 0
+
+        dst.writable.writePacket(readable)
+        dst.afterWrite(size.toInt())
+        afterRead(size.toInt())
+        return size
     }
 
     private suspend inline fun readNSlow(n: Int, block: () -> Nothing): Nothing {

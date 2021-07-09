@@ -344,7 +344,7 @@ public abstract class Input(
 
         if (tailRemaining == 0L && noMoreChunksAvailable) return -1
 
-        return prepareReadLoop(1, head)?.tryPeekByte() ?: -1
+        return prepareReadLoop(1)?.tryPeekByte() ?: -1
     }
 
     public fun peekTo(buffer: ChunkBuffer): Int {
@@ -561,7 +561,7 @@ public abstract class Input(
     }
 
     @DangerousInternalIoApi
-    public fun prepareReadHead(minSize: Int): ChunkBuffer? = prepareReadLoop(minSize, head)
+    public fun prepareReadHead(minSize: Int): ChunkBuffer? = prepareReadLoop(minSize)
 
     @DangerousInternalIoApi
     public fun ensureNextHead(current: ChunkBuffer): ChunkBuffer? = ensureNext(current)
@@ -731,45 +731,47 @@ public abstract class Input(
     internal fun prepareRead(minSize: Int): ChunkBuffer? {
         val head = head
         if (headEndExclusive - headPosition >= minSize) return head
-        return prepareReadLoop(minSize, head)
+        return prepareReadLoop(minSize)
     }
 
     @PublishedApi
     internal fun prepareRead(minSize: Int, head: ChunkBuffer): ChunkBuffer? {
         if (headEndExclusive - headPosition >= minSize) return head
-        return prepareReadLoop(minSize, head)
+        return prepareReadLoop(minSize)
     }
 
-    private tailrec fun prepareReadLoop(minSize: Int, head: ChunkBuffer): ChunkBuffer? {
-        val headSize = headRemaining
-        if (headSize >= minSize) return head
+    private fun prepareReadLoop(minSize: Int): ChunkBuffer? {
+        var current = head
+        while (true) {
+            val headSize = headRemaining
+            if (headSize >= minSize) return current
 
-        val next = head.next ?: doFill() ?: return null
+            val next = current.next ?: doFill() ?: return null
 
-        if (headSize == 0) {
-            if (head !== ChunkBuffer.Empty) {
-                releaseHead(head)
+            if (headSize == 0) {
+                if (current !== ChunkBuffer.Empty) {
+                    releaseHead(current)
+                }
+
+                current = next
+                continue
             }
 
-            return prepareReadLoop(minSize, next)
-        } else {
             val desiredExtraBytes = minSize - headSize
-            val copied = head.writeBufferAppend(next, desiredExtraBytes)
-            headEndExclusive = head.writePosition
+            val copied = current.writeBufferAppend(next, desiredExtraBytes)
+            headEndExclusive = current.writePosition
             tailRemaining -= copied
             if (!next.canRead()) {
-                head.next = null
-                head.next = next.cleanNext()
+                current.next = null
+                current.next = next.cleanNext()
                 next.release(pool)
             } else {
                 next.reserveStartGap(copied)
             }
+
+            if (current.readRemaining >= minSize) return current
+            if (minSize > Buffer.ReservedSize) minSizeIsTooBig(minSize)
         }
-
-        if (head.readRemaining >= minSize) return head
-        if (minSize > Buffer.ReservedSize) minSizeIsTooBig(minSize)
-
-        return prepareReadLoop(minSize, head)
     }
 
     private fun minSizeIsTooBig(minSize: Int): Nothing {
@@ -857,8 +859,7 @@ public inline fun Input.takeWhile(block: (Buffer) -> Boolean) {
  * [block] function should never release provided buffer and should not write to it otherwise an undefined behaviour
  * could be observed
  */
-@DangerousInternalIoApi
-public inline fun Input.takeWhileSize(initialSize: Int = 1, block: (Buffer) -> Int) {
+internal inline fun Input.takeWhileSize(initialSize: Int = 1, block: (Buffer) -> Int) {
     var release = true
     var current = prepareReadFirstHead(initialSize) ?: return
     var size = initialSize
@@ -887,11 +888,7 @@ public inline fun Input.takeWhileSize(initialSize: Int = 1, block: (Buffer) -> I
                     prepareReadFirstHead(size)
                 }
                 else -> current
-            }
-
-            if (next == null) {
-                break
-            }
+            } ?: break
 
             current = next
             release = true
@@ -901,6 +898,7 @@ public inline fun Input.takeWhileSize(initialSize: Int = 1, block: (Buffer) -> I
             completeReadHead(current)
         }
     }
+
 }
 
 @ExperimentalIoApi
