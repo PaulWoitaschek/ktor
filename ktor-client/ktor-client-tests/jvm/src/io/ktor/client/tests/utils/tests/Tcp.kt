@@ -14,7 +14,7 @@ import kotlinx.coroutines.*
 
 internal suspend fun tcpServerHandler(socket: Socket) {
     val input = socket.openReadChannel()
-    val output = socket.openWriteChannel()
+    val output = socket.openWriteChannel(autoFlush = true)
 
     var statusLine = input.readUTF8Line()
     val requestData = StringBuilder()

@@ -111,7 +111,7 @@ public abstract class ByteChannelSequentialBase(
      */
     private fun flushWrittenBytes() {
         synchronized(flushMutex) {
-            val buffer = writable.stealAll()!!
+            val buffer = writable.stealAll() ?: return@synchronized
             flushBuffer.writeChunkBuffer(buffer)
         }
     }

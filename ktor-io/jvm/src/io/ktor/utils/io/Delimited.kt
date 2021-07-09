@@ -121,6 +121,7 @@ private fun LookAheadSession.tryCopyUntilDelimiter(delimiter: ByteBuffer, dst: B
     val notKnown = delimiter.remaining() - found
     if (notKnown == 0) {
         val result = dst.putLimited(buffer, buffer.position() + index)
+        consumed(result)
         return -result
     }
 
