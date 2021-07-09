@@ -20,14 +20,18 @@ class ByteChannelReadCommonTest {
         val builder = StringBuilder()
 
         channel.readUTF8LineTo(builder)
-        println("Builder $builder")
-        println(channel.availableForRead)
+        assertEquals("Line 1", builder.toString())
+        assertEquals(channel.availableForRead, 16)
+        assertEquals(channel.totalBytesRead, 8)
+
         channel.readUTF8LineTo(builder)
-        println("Builder $builder")
-        println(channel.availableForRead)
+        assertEquals("Line 1Line 2", builder.toString())
+        assertEquals(channel.availableForRead, 8)
+        assertEquals(channel.totalBytesRead, 16)
+
         channel.readUTF8LineTo(builder)
-        println("Builder $builder")
-        println(channel.availableForRead)
-        println(channel.totalBytesRead)
+        assertEquals("Line 1Line 2Line 3", builder.toString())
+        assertEquals(channel.availableForRead, 0)
+        assertEquals(channel.totalBytesRead, 24)
     }
 }

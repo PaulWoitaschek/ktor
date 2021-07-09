@@ -704,12 +704,9 @@ public abstract class ByteChannelSequentialBase(
             return false
         }
 
-        @OptIn(DangerousInternalIoApi::class)
-        return decodeUTF8LineLoopSuspend(out, limit) { size ->
-            afterRead(size)
-            if (await(size)) readable
-            else null
-        }
+        return decodeUTF8LineLoopSuspend(out, limit, { size ->
+            if (await(size)) readable else null
+        }) { afterRead(it) }
     }
 
     override suspend fun readUTF8Line(limit: Int): String? {

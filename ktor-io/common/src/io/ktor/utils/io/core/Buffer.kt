@@ -383,23 +383,6 @@ public inline fun Buffer.canRead(): Boolean = writePosition > readPosition
 public inline fun Buffer.canWrite(): Boolean = limit > writePosition
 
 /**
- * Apply [block] of code with buffer's memory providing read range indices. The returned value of [block] lambda should
- * return number of bytes to be marked as consumed.
- * No read/write functions on this buffer should be called inside of [block] otherwise an undefined behaviour may occur
- * including data damage.
- */
-@DangerousInternalIoApi
-public inline fun Buffer.read(block: (memory: Memory, start: Int, endExclusive: Int) -> Int): Int {
-    contract {
-        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-    }
-
-    val rc = block(memory, readPosition, writePosition)
-    discardExact(rc)
-    return rc
-}
-
-/**
  * Apply [block] of code with buffer's memory providing write range indices. The returned value of [block] lambda should
  * return number of bytes were written.
  * o read/write functions on this buffer should be called inside of [block] otherwise an undefined behaviour may occur
@@ -413,6 +396,23 @@ public inline fun Buffer.write(block: (memory: Memory, start: Int, endExclusive:
 
     val rc = block(memory, writePosition, limit)
     commitWritten(rc)
+    return rc
+}
+
+/**
+ * Apply [block] of code with buffer's memory providing read range indices. The returned value of [block] lambda should
+ * return number of bytes to be marked as consumed.
+ * No read/write functions on this buffer should be called inside of [block] otherwise an undefined behaviour may occur
+ * including data damage.
+ */
+@DangerousInternalIoApi
+public inline fun Buffer.read(block: (memory: Memory, start: Int, endExclusive: Int) -> Int): Int {
+    contract {
+        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
+    }
+
+    val rc = block(memory, readPosition, writePosition)
+    discardExact(rc)
     return rc
 }
 
