@@ -14,13 +14,11 @@ class UnconfinedTests {
     @Test
     fun testReaderPropagation() {
         var resumed = false
-        var startFlush = false
 
         val origin = ByteChannel(false)
         GlobalScope.reader(Dispatchers.Unconfined, origin) {
             origin.readSuspendableSession {
                 await()
-                assertTrue(startFlush)
                 resumed = true
             }
         }.channel
@@ -34,7 +32,6 @@ class UnconfinedTests {
             val packet = BytePacketBuilder()
             packet.writeFully(ByteArray(119))
             channel.writePacket(packet.build())
-            startFlush = true
             channel.flush()
             channel.close()
             Unit

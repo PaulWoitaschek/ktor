@@ -17,7 +17,6 @@ import kotlin.io.use
 
 class ExceptionsJvmTest {
 
-
     @get:Rule
     val timeout = CoroutinesTimeout(60 * 1000L, true)
 

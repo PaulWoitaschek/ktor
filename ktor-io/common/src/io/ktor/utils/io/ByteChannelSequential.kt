@@ -322,7 +322,11 @@ public abstract class ByteChannelSequentialBase(
     }
 
     private suspend fun readShortSlow(): Short {
-        readNSlow(2) { return readable.readShort().also { afterRead(2) } }
+        readNSlow(2) {
+            val result = readable.readShort()
+            afterRead(2)
+            return result
+        }
     }
 
     protected fun afterRead(count: Int) {
@@ -748,6 +752,7 @@ public abstract class ByteChannelSequentialBase(
 
         dst.writable.writePacket(readable)
         dst.afterWrite(size.toInt())
+        dst.flush()
         afterRead(size.toInt())
         return size
     }
