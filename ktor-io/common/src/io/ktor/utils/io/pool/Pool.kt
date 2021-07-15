@@ -1,5 +1,6 @@
 package io.ktor.utils.io.pool
 
+import io.ktor.utils.io.concurrent.*
 import io.ktor.utils.io.core.*
 import kotlinx.atomicfu.*
 import kotlin.jvm.*
@@ -55,8 +56,7 @@ public abstract class SingleInstancePool<T : Any> : ObjectPool<T> {
     private val borrowed = atomic(0)
     private val disposed = atomic(false)
 
-    @Volatile
-    private var instance: T? = null
+    private var instance: T? by shared(null)
 
     /**
      * Creates a new instance of [T]
